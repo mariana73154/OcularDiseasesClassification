@@ -43,6 +43,7 @@ from keras.optimizers import Adam,RMSprop,SGD,Adamax     # Adam,RMSprop,SGD,Adam
 from keras.models import Model                           # Model, model for deep learning
 from keras import layers                                 # layers, model for deep learning
 from keras.callbacks import ReduceLROnPlateau, EarlyStopping # ReduceLROnPlateau, EarlyStopping, model for deep learning
+from keras.metrics import Precision, Recall, AUC, TruePositives, TrueNegatives, FalsePositives, FalseNegatives
 
 """# Problem and Data
 
@@ -58,27 +59,27 @@ Dataset is stored in "Data" folder and is composed of:
 """
 
 # count number of files in a directory
-def count_files(directory):
-    return len([item for item in os.listdir(directory) if os.path.isfile(os.path.join(directory, item))])
+#def count_files(directory):
+#    return len([item for item in os.listdir(directory) if os.path.isfile(os.path.join(directory, item))])
 
 EyeDiseases = dict()
-DatasetPath = '/content/OcularDiseasesClassification/Data/dataset/' if using_Colab else './dataset/'
+DatasetPath = '/content/OcularDiseasesClassification/Data/dataset/' if using_Colab else './dataPreprocessed/'
 
-for dir in os.listdir(DatasetPath):
-    print('Total number of images in the [', dir.upper() ,'] : ', count_files(DatasetPath + dir))
-    EyeDiseases.update({dir:count_files(DatasetPath + dir)} )
+#for dir in os.listdir(DatasetPath):
+#    print('Total number of images in the [', dir.upper() ,'] : ', count_files(DatasetPath + dir))
+#    EyeDiseases.update({dir:count_files(DatasetPath + dir)} )
 
-print('Total number of images in the [ DATASET ] :', sum(EyeDiseases.values()))
+#print('Total number of images in the [ DATASET ] :', sum(EyeDiseases.values()))
 
 """The dataset has four equally distributed classes.
 However, 4000 images may not be sufficient, so I will create synthetic images using data augmentation
 """
 
 #Plot the number of images in each class using a pie chart
-plt.figure(figsize=(3,3))
-plt.pie(EyeDiseases.values(), labels=EyeDiseases.keys(), autopct='%1.1f%%', startangle=90)
-plt.title('Number of images in each class')
-plt.show()
+#plt.figure(figsize=(3,3))
+#plt.pie(EyeDiseases.values(), labels=EyeDiseases.keys(), autopct='%1.1f%%', startangle=90)
+#plt.title('Number of images in each class')
+#plt.show()
 
 """# Model
 
@@ -90,13 +91,16 @@ def get_data(path_folder):
     #Load the images from the folder "dataset" into train and test sets using ImageDataGenerator
     train_datagen = ImageDataGenerator(
         rescale=1./255,
-        validation_split=0.2
+        validation_split=0.2,
+        horizontal_flip=True,
+        vertical_flip=True,
+        rotation_range=20,
     )
 
     train_generator = train_datagen.flow_from_directory(
         path_folder,
-        target_size=(256, 256),
-        batch_size=20,
+        target_size=(1024, 1024),
+        batch_size=10,
         class_mode='categorical',
         subset='training',
         seed=10
@@ -104,8 +108,8 @@ def get_data(path_folder):
 
     validation_generator = train_datagen.flow_from_directory(
         path_folder,
-        target_size=(256, 256),
-        batch_size=20,
+        target_size=(1024, 1024),
+        batch_size=10,
         class_mode='categorical',
         subset='validation',
         seed=10
@@ -129,7 +133,7 @@ def get_model(model_list,model_name,weigths=None):
     model.compile(
         optimizer=Adam(learning_rate=0.001),
         loss='categorical_crossentropy',
-        metrics=['accuracy']
+        metrics=['accuracy', Precision(), Recall(), AUC()]
     )
     return model
 
@@ -165,11 +169,15 @@ def evaluate_model(history):
     #Plot the training and validation accuracy and loss at each epoch
     plt.figure(figsize=(10, 5))
     plt.subplot(1, 2, 1)
+    #Plot training and validation metrics of the model
     plt.plot(history.history['accuracy'], label='Training Accuracy')
     plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
-    plt.title('Training and Validation Accuracy')
+    plt.plot(history.history['recall'], label='Training Recall')
+    plt.plot(history.history['val_recall'], label='Validation Recall')
+    plt.plot(history.history['precision'], label='Training Precision')
+    plt.plot(history.history['val_precision'], label='Validation Precision')
+    plt.title('Training and Validation Metrics')
     plt.xlabel('Epochs')
-    plt.ylabel('Accuracy')
     plt.legend()
 
     return plt
@@ -244,7 +252,7 @@ def CNN_model(weights=None):
     model = Sequential()
 
     #Input Layer
-    Inputlayer = Input(shape=(256, 256, 3))
+    Inputlayer = Input(shape=(1024, 1024, 3))
 
     # 1st Convolutional Layer
     x = Conv2D(filters=32, kernel_size=(3,3), activation='relu', padding='same')(Inputlayer)
@@ -261,6 +269,11 @@ def CNN_model(weights=None):
     x = Conv2D(filters=128, kernel_size=(3,3), activation='relu', padding='same')(x)
     x = MaxPool2D(pool_size=(2,2))(x)
 
+    # 4th Convolutional Layer
+    x = Conv2D(filters=256, kernel_size=(3,3), activation='relu', padding='same')(x)
+    x = Conv2D(filters=256, kernel_size=(3,3), activation='relu', padding='same')(x)
+    x = MaxPool2D(pool_size=(2,2))(x)
+    
     # Output Layer
     x = Flatten()(x)
     x = Dense(units=128, activation='relu')(x)
@@ -279,10 +292,10 @@ def VGG16_model(weights=None):
     model = Sequential()
 
     #Input Layer
-    Inputlayer = Input(shape=(256, 256, 3))
+    Inputlayer = Input(shape=(1024, 1024, 3))
     
     # Importing VGG16 from keras API
-    x=VGG16(include_top=False, weights=weights, input_shape=(256,256,3))(Inputlayer)
+    x=VGG16(include_top=False, weights=weights, input_shape=(1024,1024,3))(Inputlayer)
 
     # Output Layer
     x = Flatten()(x)
@@ -302,10 +315,10 @@ def RESNet_model(weights=None):
     model = Sequential()
 
     #Input Layer
-    Inputlayer = Input(shape=(256, 256, 3))
+    Inputlayer = Input(shape=(1024, 1024, 3))
 
     # Importing RESNet from keras API without weights
-    x=ResNet50(include_top=False, weights=weights, input_shape=(256,256,3))(Inputlayer)
+    x=ResNet50(include_top=False, weights=weights, input_shape=(1024,1024,3))(Inputlayer)
     
     # Output Layer
     x = Flatten()(x)
@@ -325,10 +338,10 @@ def Xception_model(weights=None):
     model = Sequential()
 
     #Input Layer
-    Inputlayer = Input(shape=(256, 256, 3))
+    Inputlayer = Input(shape=(1024, 1024, 3))
 
     # Importing Xception from keras API without weights
-    x=Xception(include_top=False, weights=weights, input_shape=(256,256,3))(Inputlayer)
+    x=Xception(include_top=False, weights=weights, input_shape=(1024,1024,3))(Inputlayer)
     
     # Output Layer
     x = Flatten()(x)
@@ -355,7 +368,7 @@ model_list = {
 ### CNN
 """
 
-#Run_Model(model_list,DatasetPath,"CNN_model")
+Run_Model(model_list,DatasetPath,"CNN_model")
 
 """### VGG16"""
 
