@@ -151,7 +151,7 @@ def train_model(model,train_generator,validation_generator,epochs,model_name):
 
     #Callback
     callback = [
-        tf.keras.callbacks.EarlyStopping(patience=2, monitor='val_accuracy'),
+        tf.keras.callbacks.EarlyStopping(patience=3, monitor='val_accuracy'),
         tf.keras.callbacks.ModelCheckpoint(save_best_only=True, monitor='val_accuracy',filepath='Best_Model/'+ model_name +'.h5'),
     ]
 
