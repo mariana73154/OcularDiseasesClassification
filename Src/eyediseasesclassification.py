@@ -63,7 +63,7 @@ Dataset is stored in "Data" folder and is composed of:
 #    return len([item for item in os.listdir(directory) if os.path.isfile(os.path.join(directory, item))])
 
 EyeDiseases = dict()
-DatasetPath = '/content/OcularDiseasesClassification/Data/dataset/' if using_Colab else '../Data/dataset/'
+DatasetPath = '/content/OcularDiseasesClassification/Data/dataset/' if using_Colab else './dataset/'
 
 #for dir in os.listdir(DatasetPath):
 #    print('Total number of images in the [', dir.upper() ,'] : ', count_files(DatasetPath + dir))
@@ -100,7 +100,7 @@ def get_data(path_folder):
     train_generator = train_datagen.flow_from_directory(
         path_folder,
         target_size=(512, 512),
-        batch_size=10,
+        batch_size=32,
         class_mode='categorical',
         subset='training',
         seed=10
@@ -109,7 +109,7 @@ def get_data(path_folder):
     validation_generator = train_datagen.flow_from_directory(
         path_folder,
         target_size=(512, 512),
-        batch_size=10,
+        batch_size=32,
         class_mode='categorical',
         subset='validation',
         seed=10
@@ -133,7 +133,7 @@ def get_model(model_list,model_name,weigths=None):
     model.compile(
         optimizer=Adam(learning_rate=0.001),
         loss='categorical_crossentropy',
-        metrics=['accuracy', Precision(), Recall(), AUC()]
+        metrics=['accuracy', Precision(), Recall(), AUC()],
     )
     return model
 
@@ -145,16 +145,23 @@ def get_model(model_list,model_name,weigths=None):
 #validation_generator = validation data
 #epochs = number of epochs to train
 
-def train_model(model,train_generator,validation_generator,epochs):
+def train_model(model,train_generator,validation_generator,epochs,model_name):
     #Hyperparameters
     #epochs=epochs
+
+    #Callback
+    callback = [
+        tf.keras.callbacks.EarlyStopping(patience=2, monitor='val_accuracy'),
+        tf.keras.callbacks.ModelCheckpoint(save_best_only=True, monitor='val_accuracy',filepath='Best_Model/'+ model_name +'.h5'),
+    ]
 
     #Train the model
     history = model.fit(
         train_generator,
         validation_data=validation_generator,
         epochs=epochs,
-        verbose=1
+        verbose=1,
+        callbacks=callback,
     )
 
     return model, history
@@ -176,6 +183,8 @@ def evaluate_model(history):
     plt.plot(history.history['val_recall'], label='Validation Recall')
     plt.plot(history.history['precision'], label='Training Precision')
     plt.plot(history.history['val_precision'], label='Validation Precision')
+    plt.plot(history.history['auc'], label='Training AUC')
+    plt.plot(history.history['val_auc'], label='Validation AUC')
     plt.title('Training and Validation Metrics')
     plt.xlabel('Epochs')
     plt.legend()
@@ -220,6 +229,7 @@ def save_model(model,model_name,history):
     with open(hist_csv_file, mode='w') as f:
         hist_df.to_csv(f)
 
+
 """## Run Model"""
 
 #Function to load Model
@@ -234,7 +244,7 @@ def Run_Model(model_list,path_folder,model_name, weights = None):
         model = get_model(model_list,model_name)
     
         #Train model
-        model, history = train_model(model,train_generator,validation_generator,epochs=30)
+        model, history = train_model(model,train_generator,validation_generator,epochs=50,model_name=model_name)
     
         #Evaluate model
         evaluate_model(history)
