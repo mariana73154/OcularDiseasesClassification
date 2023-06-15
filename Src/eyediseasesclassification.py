@@ -63,7 +63,7 @@ Dataset is stored in "Data" folder and is composed of:
 #    return len([item for item in os.listdir(directory) if os.path.isfile(os.path.join(directory, item))])
 
 EyeDiseases = dict()
-DatasetPath = '/content/OcularDiseasesClassification/Data/dataset/' if using_Colab else './dataPreprocessed/'
+DatasetPath = '/content/OcularDiseasesClassification/Data/dataset/' if using_Colab else '../Data/dataset/'
 
 #for dir in os.listdir(DatasetPath):
 #    print('Total number of images in the [', dir.upper() ,'] : ', count_files(DatasetPath + dir))
@@ -99,7 +99,7 @@ def get_data(path_folder):
 
     train_generator = train_datagen.flow_from_directory(
         path_folder,
-        target_size=(1024, 1024),
+        target_size=(512, 512),
         batch_size=10,
         class_mode='categorical',
         subset='training',
@@ -108,7 +108,7 @@ def get_data(path_folder):
 
     validation_generator = train_datagen.flow_from_directory(
         path_folder,
-        target_size=(1024, 1024),
+        target_size=(512, 512),
         batch_size=10,
         class_mode='categorical',
         subset='validation',
@@ -252,7 +252,7 @@ def CNN_model(weights=None):
     model = Sequential()
 
     #Input Layer
-    Inputlayer = Input(shape=(1024, 1024, 3))
+    Inputlayer = Input(shape=(512, 512, 3))
 
     # 1st Convolutional Layer
     x = Conv2D(filters=32, kernel_size=(3,3), activation='relu', padding='same')(Inputlayer)
@@ -292,10 +292,10 @@ def VGG16_model(weights=None):
     model = Sequential()
 
     #Input Layer
-    Inputlayer = Input(shape=(1024, 1024, 3))
+    Inputlayer = Input(shape=(512, 512, 3))
     
     # Importing VGG16 from keras API
-    x=VGG16(include_top=False, weights=weights, input_shape=(1024,1024,3))(Inputlayer)
+    x=VGG16(include_top=False, weights=weights, input_shape=(512,512,3))(Inputlayer)
 
     # Output Layer
     x = Flatten()(x)
@@ -315,10 +315,10 @@ def RESNet_model(weights=None):
     model = Sequential()
 
     #Input Layer
-    Inputlayer = Input(shape=(1024, 1024, 3))
+    Inputlayer = Input(shape=(512, 512, 3))
 
     # Importing RESNet from keras API without weights
-    x=ResNet50(include_top=False, weights=weights, input_shape=(1024,1024,3))(Inputlayer)
+    x=ResNet50(include_top=False, weights=weights, input_shape=(512,512,3))(Inputlayer)
     
     # Output Layer
     x = Flatten()(x)
@@ -338,10 +338,10 @@ def Xception_model(weights=None):
     model = Sequential()
 
     #Input Layer
-    Inputlayer = Input(shape=(1024, 1024, 3))
+    Inputlayer = Input(shape=(512, 512, 3))
 
     # Importing Xception from keras API without weights
-    x=Xception(include_top=False, weights=weights, input_shape=(1024,1024,3))(Inputlayer)
+    x=Xception(include_top=False, weights=weights, input_shape=(512,512,3))(Inputlayer)
     
     # Output Layer
     x = Flatten()(x)
