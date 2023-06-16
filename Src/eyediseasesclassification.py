@@ -175,17 +175,23 @@ def evaluate_model(history):
 
     #Plot the training and validation accuracy and loss at each epoch
     plt.figure(figsize=(10, 5))
+    
     plt.subplot(1, 2, 1)
-    #Plot training and validation metrics of the model
+    #Plot training metrics of the model
     plt.plot(history.history['accuracy'], label='Training Accuracy')
-    plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
     plt.plot(history.history['recall'], label='Training Recall')
-    plt.plot(history.history['val_recall'], label='Validation Recall')
     plt.plot(history.history['precision'], label='Training Precision')
-    plt.plot(history.history['val_precision'], label='Validation Precision')
     plt.plot(history.history['auc'], label='Training AUC')
+    plt.title('Training Metrics')
+    plt.xlabel('Epochs')
+    plt.legend()
+
+    plt.subplot(1, 2, 2)
+    plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+    plt.plot(history.history['val_recall'], label='Validation Recall')
+    plt.plot(history.history['val_precision'], label='Validation Precision')
     plt.plot(history.history['val_auc'], label='Validation AUC')
-    plt.title('Training and Validation Metrics')
+    plt.title('Validation Metrics')
     plt.xlabel('Epochs')
     plt.legend()
 
